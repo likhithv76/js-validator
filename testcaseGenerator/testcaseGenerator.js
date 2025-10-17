@@ -1,6 +1,6 @@
 import { HTMLParser } from "./parsers/htmlParser.js";
 import { CSSParser } from "./parsers/cssParser.js";
-import { JSParser } from "./parsers/jsParser.js";
+import { JSParser } from "./jsParser.js";
 import fs from "fs";
 import path from "path";
 
@@ -35,24 +35,38 @@ export class TestcaseGenerator {
     for (const [filename, content] of Object.entries(files)) {
       const fileExtension = path.extname(filename).toLowerCase();
       
-      switch (fileExtension) {
-        case '.html':
-          await this.processHTML(filename, content, { includeStructure });
-          break;
-        case '.css':
-          await this.processCSS(filename, content, { includeStyles });
-          break;
-        case '.js':
-          await this.processJS(filename, content, {
-            includeEvents,
-            includeFunctions,
-            includeConditions,
-            includeObjects,
-            autoDetect
-          });
-          break;
-        default:
-          console.warn(`Unsupported file type: ${fileExtension}`);
+      try {
+        switch (fileExtension) {
+          case '.html':
+            await this.processHTML(filename, content, { includeStructure });
+            break;
+          case '.css':
+            await this.processCSS(filename, content, { includeStyles });
+            break;
+          case '.js':
+            await this.processJS(filename, content, {
+              includeEvents,
+              includeFunctions,
+              includeConditions,
+              includeObjects,
+              autoDetect
+            });
+            break;
+          default:
+            console.warn(`Unsupported file type: ${fileExtension}`);
+            this.results.Code_Validation[filename] = {
+              Ans: content,
+              structure: [],
+              error: `Unsupported file type: ${fileExtension}`
+            };
+        }
+      } catch (err) {
+        console.error(`Error processing ${filename}:`, err.message);
+        this.results.Code_Validation[filename] = {
+          Ans: content,
+          structure: [],
+          error: err.message
+        };
       }
     }
 
@@ -85,7 +99,12 @@ export class TestcaseGenerator {
     
     this.results.Code_Validation[filename] = {
       Ans: content,
-      structure: htmlResult.structure
+      structure: htmlResult.structure || [],
+      analysis: {
+        elements: htmlResult.elements || [],
+        selectors: htmlResult.selectors || []
+      },
+      suggestions: []
     };
 
     // Add interactive elements suggestions
@@ -118,15 +137,17 @@ export class TestcaseGenerator {
     if (!this.results.Code_Validation[filename]) {
       this.results.Code_Validation[filename] = {
         Ans: content,
-        structure: []
+        structure: [],
+        analysis: {},
+        suggestions: []
       };
     }
 
-    this.results.Code_Validation[filename].structure.push(...cssResult.styleTests);
+    this.results.Code_Validation[filename].structure.push(...(cssResult.styleTests || []));
 
     this.results.Code_Validation[filename].analysis = {
-      selectors: cssResult.selectors,
-      properties: cssResult.properties,
+      selectors: cssResult.selectors || [],
+      properties: cssResult.properties || {},
       colors: cssResult.colors || [],
       layoutProperties: cssResult.layoutProperties || [],
       mediaQueries: cssResult.mediaQueries || []
@@ -151,7 +172,9 @@ export class TestcaseGenerator {
     
     this.results.Code_Validation[filename] = {
       Ans: content,
-      structure: []
+      structure: [],
+      analysis: {},
+      suggestions: []
     };
 
     // Add tests based on options
@@ -177,17 +200,17 @@ export class TestcaseGenerator {
 
     // Add JavaScript analysis
     this.results.Code_Validation[filename].analysis = {
-      events: jsResult.events,
-      functions: jsResult.functions,
-      variables: jsResult.variables,
-      conditions: jsResult.conditions,
-      objects: jsResult.objects,
-      domManipulations: jsResult.domManipulations
+      events: jsResult.events || [],
+      functions: jsResult.functions || [],
+      variables: jsResult.variables || [],
+      conditions: jsResult.conditions || [],
+      objects: jsResult.objects || [],
+      domManipulations: jsResult.domManipulations || []
     };
 
     // Auto-detect suggestions
     if (autoDetect) {
-      this.results.Code_Validation[filename].suggestions = this.generateSuggestions(jsResult);
+      this.results.Code_Validation[filename].suggestions = this.generateSuggestions(jsResult) || [];
     }
   }
 
