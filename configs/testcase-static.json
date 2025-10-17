@@ -1,0 +1,60 @@
+{
+    "Code_Validation": {
+      "script.js": {
+        "Ans": "const age = 20;\nconst votingStatus = (age >= 18) ? 'Eligible to Vote' : 'Not Eligible';\nconsole.log(votingStatus);\n\nconst orderAmount = 850;\nconst deliveryStatus = (orderAmount >= 1000) ? 'Free Delivery' : 'Delivery Charge: 50';\nconsole.log(deliveryStatus);\n\nconst btn = document.createElement('button');\nbtn.id = 'hoverBtn';\nbtn.textContent = 'Hover Me';\nbtn.addEventListener('mouseover', function() { this.textContent = 'Hovered!'; });\ndocument.body.appendChild(btn);\n\nconst form = document.createElement('form');\nform.id = 'userForm';\nform.addEventListener('submit', function(e) { e.preventDefault(); this.dataset.submitted = 'true'; });\ndocument.body.appendChild(form);\n\nconst div = document.createElement('div');\ndiv.id = 'clickDiv';\ndiv.addEventListener('click', function() { this.textContent = 'Clicked!'; });\ndocument.body.appendChild(div);\n\nconst student = { name: 'John', age: 22, enrolled: true };",
+        "structure": [
+          {
+            "type": "condition",
+            "description": "Check if voting status condition uses >= 18",
+            "variable": "age",
+            "expectedOperator": ">=",
+            "expectedValue": 18,
+            "expectedOutput": "Eligible to Vote"
+          },
+          {
+            "type": "condition",
+            "description": "Check if delivery status condition uses >= 1000",
+            "variable": "orderAmount",
+            "expectedOperator": ">=",
+            "expectedValue": 1000,
+            "expectedOutput": "Delivery Charge: 50"
+          },
+          {
+            "type": "event",
+            "description": "Verify mouseover event changes button text",
+            "html": "<button id='hoverBtn'>Hover Me</button>",
+            "selector": "#hoverBtn",
+            "event": "mouseover",
+            "expected": { "textContent": "Hovered!" }
+          },
+          {
+            "type": "event",
+            "description": "Verify form submit sets dataset.submitted",
+            "html": "<form id='userForm'></form>",
+            "selector": "#userForm",
+            "event": "submit",
+            "expected": { "dataset.submitted": "true" }
+          },
+          {
+            "type": "event",
+            "description": "Check generic click listener changes text",
+            "html": "<div id='clickDiv'>Click Me</div>",
+            "selector": "#clickDiv",
+            "event": "click",
+            "expected": { "textContent": "Clicked!" }
+          },
+          {
+            "type": "object",
+            "description": "Validate JS object structure for student",
+            "objectName": "student",
+            "properties": {
+              "name": "string",
+              "age": "number",
+              "enrolled": "boolean"
+            }
+          }
+        ]
+      }
+    }
+  }
+  

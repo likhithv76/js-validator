@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testcase Generator - Admin UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .input-panel {
+            padding: 30px;
+            border-right: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+
+        .output-panel {
+            padding: 30px;
+            background: white;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h3 {
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            color: #6b7280;
+        }
+
+        .file-input:hover {
+            border-color: #4f46e5;
+            background: #f0f4ff;
+        }
+
+        .file-input.dragover {
+            border-color: #4f46e5;
+            background: #f0f4ff;
+        }
+
+        .code-editor {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            resize: vertical;
+            background: #f8fafc;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .testcase-item {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .testcase-item:hover {
+            border-color: #4f46e5;
+            background: #f0f4ff;
+        }
+
+        .testcase-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .testcase-type {
+            background: #4f46e5;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .testcase-description {
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .testcase-details {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+
+        .json-output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            max-height: 400px;
+            white-space: pre-wrap;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #c7d2fe;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4f46e5;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #16a34a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: #6b7280;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: #4f46e5;
+            border-bottom-color: #4f46e5;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-panel {
+                border-right: none;
+                border-bottom: 1px solid #e5e7eb;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Testcase Generator</h1>
+            <p>Automatically generate test cases from your HTML, CSS, and JavaScript code</p>
+        </div>
+
+        <div class="main-content">
+            <div class="input-panel">
+                <div class="section">
+                    <h3>📁 Upload Files</h3>
+                    <div class="file-input" id="fileInput">
+                        <p>📎 Drag & drop files here or click to browse</p>
+                        <p style="font-size: 0.9rem; margin-top: 5px;">Supports .html, .css, .js files</p>
+                    </div>
+                    <input type="file" id="fileInputHidden" multiple accept=".html,.css,.js" style="display: none;">
+                </div>
+
+                <div class="section">
+                    <h3>✏️ Or Paste Code</h3>
+                    <div class="tabs">
+                        <div class="tab active" data-lang="html">HTML</div>
+                        <div class="tab" data-lang="css">CSS</div>
+                        <div class="tab" data-lang="js">JavaScript</div>
+                    </div>
+                    <textarea class="code-editor" id="codeEditor" placeholder="Paste your code here..."></textarea>
+                </div>
+
+                <div class="section">
+                    <h3>⚙️ Options</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="includeStructure" checked>
+                            <span>HTML Structure</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="includeStyles" checked>
+                            <span>CSS Styles</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="includeEvents" checked>
+                            <span>JS Events</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="includeFunctions" checked>
+                            <span>JS Functions</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <button class="btn" id="generateBtn" onclick="generateTestcases()">
+                        🚀 Generate Testcases
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearAll()" style="margin-left: 10px;">
+                        🗑️ Clear All
+                    </button>
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Generating testcases...</p>
+                </div>
+            </div>
+
+            <div class="output-panel">
+                <div class="section">
+                    <h3>📊 Results</h3>
+                    <div class="stats" id="stats" style="display: none;">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalFiles">0</div>
+                            <div class="stat-label">Files</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalTests">0</div>
+                            <div class="stat-label">Tests</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalSuggestions">0</div>
+                            <div class="stat-label">Suggestions</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>🧪 Generated Testcases</h3>
+                    <div id="testcasesList"></div>
+                </div>
+
+                <div class="section">
+                    <h3>📄 JSON Output</h3>
+                    <div class="json-output" id="jsonOutput">
+                        Generated testcases will appear here...
+                    </div>
+                    <button class="btn btn-secondary" onclick="downloadJSON()" style="margin-top: 10px;">
+                        💾 Download JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLanguage = 'html';
+        let generatedData = null;
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentLanguage = tab.dataset.lang;
+                updateCodeEditorPlaceholder();
+            });
+        });
+
+        function updateCodeEditorPlaceholder() {
+            const editor = document.getElementById('codeEditor');
+            const placeholders = {
+                html: '<button id="btn">Click Me</button>\n<div class="card">Hello World</div>',
+                css: 'button { color: blue; }\n.card { background: white; }',
+                js: 'const btn = document.querySelector("#btn");\nbtn.addEventListener("click", () => {\n  btn.textContent = "Clicked!";\n});'
+            };
+            editor.placeholder = placeholders[currentLanguage];
+        }
+
+        // File input handling
+        const fileInput = document.getElementById('fileInput');
+        const fileInputHidden = document.getElementById('fileInputHidden');
+
+        fileInput.addEventListener('click', () => fileInputHidden.click());
+        fileInputHidden.addEventListener('change', handleFileSelect);
+
+        // Drag and drop
+        fileInput.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileInput.classList.add('dragover');
+        });
+
+        fileInput.addEventListener('dragleave', () => {
+            fileInput.classList.remove('dragover');
+        });
+
+        fileInput.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileInput.classList.remove('dragover');
+            handleFileSelect({ target: { files: e.dataTransfer.files } });
+        });
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                // Process files (simplified for demo)
+                console.log('Files selected:', files);
+                showMessage('Files selected! Click "Generate Testcases" to process them.', 'success');
+            }
+        }
+
+        async function generateTestcases() {
+            const loading = document.getElementById('loading');
+            const generateBtn = document.getElementById('generateBtn');
+            
+            loading.style.display = 'block';
+            generateBtn.disabled = true;
+
+            try {
+                // Get options
+                const options = {
+                    includeStructure: document.getElementById('includeStructure').checked,
+                    includeStyles: document.getElementById('includeStyles').checked,
+                    includeEvents: document.getElementById('includeEvents').checked,
+                    includeFunctions: document.getElementById('includeFunctions').checked
+                };
+
+                // Get code from editor
+                const code = document.getElementById('codeEditor').value.trim();
+                
+                if (!code) {
+                    showMessage('Please enter some code or upload files first.', 'error');
+                    return;
+                }
+
+                // Simulate API call (in real implementation, this would call your backend)
+                const result = await simulateGeneration(code, currentLanguage, options);
+                
+                generatedData = result;
+                displayResults(result);
+                showMessage('Testcases generated successfully!', 'success');
+
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            } finally {
+                loading.style.display = 'none';
+                generateBtn.disabled = false;
+            }
+        }
+
+        function simulateGeneration(code, language, options) {
+            // This is a simplified simulation - in real implementation, 
+            // this would call your TestcaseGenerator API
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const mockResult = {
+                        Code_Validation: {
+                            [`code.${language}`]: {
+                                Ans: code,
+                                structure: generateMockTests(code, language, options)
+                            }
+                        }
+                    };
+                    resolve(mockResult);
+                }, 2000);
+            });
+        }
+
+        function generateMockTests(code, language, options) {
+            const tests = [];
+            
+            if (language === 'html' && options.includeStructure) {
+                tests.push({
+                    type: 'structure',
+                    description: 'Button element should exist',
+                    selector: 'button',
+                    expected: { exists: true, tag: 'button' }
+                });
+            }
+            
+            if (language === 'css' && options.includeStyles) {
+                tests.push({
+                    type: 'style',
+                    description: 'Button should have correct styles',
+                    selector: 'button',
+                    expected: { color: 'blue' }
+                });
+            }
+            
+            if (language === 'js' && options.includeEvents) {
+                tests.push({
+                    type: 'event',
+                    description: 'Button should handle click event',
+                    selector: '#btn',
+                    event: 'click',
+                    expected: { textContent: 'Clicked!' }
+                });
+            }
+            
+            if (language === 'js' && options.includeFunctions) {
+                tests.push({
+                    type: 'function',
+                    description: 'Function should be defined',
+                    functionName: 'handleClick',
+                    testCases: [
+                        { description: 'Function should be callable', input: 'test', expected: 'test' }
+                    ]
+                });
+            }
+
+            return tests;
+        }
+
+        function displayResults(data) {
+            // Update stats
+            const stats = calculateStats(data);
+            document.getElementById('totalFiles').textContent = stats.totalFiles;
+            document.getElementById('totalTests').textContent = stats.totalTests;
+            document.getElementById('totalSuggestions').textContent = stats.totalSuggestions;
+            document.getElementById('stats').style.display = 'grid';
+
+            // Display testcases
+            const testcasesList = document.getElementById('testcasesList');
+            testcasesList.innerHTML = '';
+
+            for (const [filename, fileData] of Object.entries(data.Code_Validation)) {
+                const fileDiv = document.createElement('div');
+                fileDiv.innerHTML = `
+                    <h4 style="color: #374151; margin-bottom: 10px;">📄 ${filename}</h4>
+                    <div style="margin-bottom: 15px;">
+                        ${fileData.structure.map(test => `
+                            <div class="testcase-item">
+                                <div class="testcase-header">
+                                    <span class="testcase-type">${test.type}</span>
+                                </div>
+                                <div class="testcase-description">${test.description}</div>
+                                <div class="testcase-details">
+                                    ${test.selector ? `Selector: ${test.selector}` : ''}
+                                    ${test.event ? ` | Event: ${test.event}` : ''}
+                                    ${test.functionName ? ` | Function: ${test.functionName}` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                testcasesList.appendChild(fileDiv);
+            }
+
+            // Display JSON
+            document.getElementById('jsonOutput').textContent = JSON.stringify(data, null, 2);
+        }
+
+        function calculateStats(data) {
+            let totalFiles = 0;
+            let totalTests = 0;
+            let totalSuggestions = 0;
+
+            for (const [filename, fileData] of Object.entries(data.Code_Validation)) {
+                totalFiles++;
+                totalTests += fileData.structure ? fileData.structure.length : 0;
+                if (fileData.suggestions) {
+                    totalSuggestions += Object.values(fileData.suggestions).flat().length;
+                }
+            }
+
+            return { totalFiles, totalTests, totalSuggestions };
+        }
+
+        function downloadJSON() {
+            if (!generatedData) {
+                showMessage('No data to download. Generate testcases first.', 'error');
+                return;
+            }
+
+            const blob = new Blob([JSON.stringify(generatedData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'generated_testcases.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function clearAll() {
+            document.getElementById('codeEditor').value = '';
+            document.getElementById('testcasesList').innerHTML = '';
+            document.getElementById('jsonOutput').textContent = 'Generated testcases will appear here...';
+            document.getElementById('stats').style.display = 'none';
+            generatedData = null;
+            showMessage('All data cleared.', 'success');
+        }
+
+        function showMessage(message, type) {
+            const existing = document.querySelector('.error, .success');
+            if (existing) existing.remove();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            
+            const outputPanel = document.querySelector('.output-panel');
+            outputPanel.insertBefore(messageDiv, outputPanel.firstChild);
+
+            setTimeout(() => messageDiv.remove(), 5000);
+        }
+
+        // Initialize
+        updateCodeEditorPlaceholder();
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+    "name": "js-validator",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+      "test": "mocha tests/**/*.test.js"
+    },
+    "devDependencies": {
+      "mocha": "^11.0.0",
+      "chai": "^5.1.1",
+      "jsdom": "^25.0.0"
+    }
+  }
+  
