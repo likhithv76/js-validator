@@ -11,7 +11,7 @@
         "mocha": "^11.0.0"
     },
     "dependencies": {
-        "@babel/traverse": "^7.28.4",
-        "multer": "^1.4.5-lts.1"
+        "@babel/parser": "^7.28.4",
+        "acron": "^1.0.5"
     }
 }
