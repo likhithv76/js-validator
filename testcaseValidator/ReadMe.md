@@ -5,5 +5,5 @@ and validates using JSON-defined test structures.
 
 **Run**
 ```
-npx mocha validators/jsValidator.test.js --reporter json > results.json
+npx mocha testcaseValidator/jsValidator.test.js --reporter json > results.json
 ```

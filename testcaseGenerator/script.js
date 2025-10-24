@@ -1,9 +1,8 @@
-const age = 20;
-const votingStatus = (age >= 18) ? "Eligible to Vote" : "Not Eligible";
-const user = { name: "John", score: 80 };
-if (user.score >= 75) {
-  console.log("Passed");
-}
-document.querySelector("#btn").addEventListener("click", () => {
-  console.log("Button clicked!");
-});
+var userName = "Sara";
+console.log("Initial userName:", userName);
+
+userName = "Tina";
+console.log("Changed userName:", userName);
+
+var userName = "Raj";
+console.log("Redeclared userName:", userName);

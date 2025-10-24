@@ -1,0 +1,36 @@
+{
+  "Code_Validation": {
+    "script-uncommented.js": {
+      "Ans": "const totalBill = 3000;\r\nconst discount = 500;\r\n\r\n// Uncomment the next line to apply discount\r\nconst finalBill = totalBill - discount;\r\n\r\nconsole.log(\"Final Bill without discount:\", totalBill);\r\n// If we uncomment above line: Final Bill with discount: 2500\r\n",
+      "structure": [
+        {
+          "type": "variable",
+          "description": "Variable 'totalBill' should be declared with value 3000",
+          "variable": "totalBill",
+          "expectedValue": 3000
+        },
+        {
+          "type": "variable",
+          "description": "Variable 'discount' should be declared with value 500",
+          "variable": "discount",
+          "expectedValue": 500
+        },
+        {
+          "type": "output",
+          "description": "Should print 'Final Bill without discount: 3000' using console.log",
+          "expectedOutput": "Final Bill without discount: 3000"
+        },
+        {
+          "type": "explanation",
+          "description": "Comment explains: Uncomment the next line to apply discount",
+          "comment": "Uncomment the next line to apply discount"
+        },
+        {
+          "type": "explanation",
+          "description": "Comment explains: If we uncomment above line: Final Bill with discount: 2500",
+          "comment": "If we uncomment above line: Final Bill with discount: 2500"
+        }
+      ]
+    }
+  }
+}

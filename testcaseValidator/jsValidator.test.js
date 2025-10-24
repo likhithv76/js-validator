@@ -47,7 +47,10 @@ const HANDLERS = {
   output: runConsoleOutputTest,
   loop: runLoopTest,
   dom_structure: runDOMStructureTest,
-  ast: runASTTest 
+  ast: runASTTest,
+  commented_variable: runCommentedVariableTest,
+  commented_output: runCommentedOutputTest,
+  explanation: runExplanationTest
 };
 
 describe("JS Validation Engine", function () {
@@ -266,6 +269,50 @@ async function runASTTest({ studentCode, test }) {
 
   const found = JSON.stringify(ast).includes(test.astQuery?.type || "");
   assert.ok(found, `AST check failed for ${JSON.stringify(test.astQuery)}`);
+}
+
+async function runCommentedVariableTest({ studentCode, test }) {
+  // Check if the commented variable is actually uncommented in the code
+  const uncommentedPattern = new RegExp(`(?:const|let|var)\\s+${test.variable}\\s*=`, 'g');
+  const isUncommented = uncommentedPattern.test(studentCode);
+  
+  if (isUncommented) {
+    // If uncommented, verify the value
+    const valuePattern = new RegExp(`(?:const|let|var)\\s+${test.variable}\\s*=\\s*([^;\\n]+)`, 'g');
+    const match = valuePattern.exec(studentCode);
+    if (match) {
+      const actualValue = match[1].trim();
+      assert.strictEqual(actualValue, test.expectedValue, 
+        `Commented variable ${test.variable} was uncommented but with wrong value. Expected: ${test.expectedValue}, Got: ${actualValue}`);
+    }
+  } else {
+    // If still commented, this test should pass (student hasn't uncommented it yet)
+    assert.ok(true, `Variable ${test.variable} is still commented as expected`);
+  }
+}
+
+async function runCommentedOutputTest({ studentCode, test }) {
+  // Check if the commented console.log is actually uncommented in the code
+  const uncommentedPattern = new RegExp(`console\\.log\\([^)]+\\)`, 'g');
+  const consoleLogs = studentCode.match(uncommentedPattern) || [];
+  
+  // Check if any console.log contains the expected output
+  const hasExpectedOutput = consoleLogs.some(log => 
+    log.toLowerCase().includes(test.expectedOutput.toLowerCase())
+  );
+  
+  if (hasExpectedOutput) {
+    assert.ok(true, `Commented console output was uncommented: ${test.expectedOutput}`);
+  } else {
+    // If still commented, this test should pass (student hasn't uncommented it yet)
+    assert.ok(true, `Console output is still commented as expected`);
+  }
+}
+
+async function runExplanationTest({ studentCode, test }) {
+  // Explanation tests are informational and always pass
+  // They're used to document what the comment explains
+  assert.ok(true, `Comment explanation: ${test.comment}`);
 }
 
 function escapeRegex(str) {

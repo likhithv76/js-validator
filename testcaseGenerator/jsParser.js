@@ -8,9 +8,14 @@ export class JSParser {
     this.objects = [];
     this.events = [];
     this.outputs = [];
+    this.commentedCode = [];
+    this.variableValues = new Map(); // Store variable values for resolution
   }
 
   parse(code) {
+    // Parse comments first to detect commented-out code
+    this.parseComments(code);
+    
     const ast = parser.parse(code, { sourceType: "module", plugins: ["jsx", "typescript"] });
 
     traverse.default(ast, {
@@ -20,10 +25,12 @@ export class JSParser {
         if (!valueNode) return;
         if (valueNode.type === "NumericLiteral" || valueNode.type === "StringLiteral") {
           this.variables.push({ name, value: valueNode.value });
+          this.variableValues.set(name, valueNode.value); // Store for later resolution
         }
         if (valueNode.type === "ObjectExpression") {
           const props = valueNode.properties.map((p) => p.key.name);
           this.objects.push({ name, props });
+          this.variableValues.set(name, `{${props.join(", ")}}`); // Store object reference
         }
       },
 
@@ -52,8 +59,11 @@ export class JSParser {
       CallExpression: (path) => {
         const callee = path.node.callee;
         if (callee.object?.name === "console" && callee.property?.name === "log") {
-          const arg = path.node.arguments[0];
-          this.outputs.push(this.resolveExpression(arg));
+          // Handle console.log with multiple arguments
+          const args = path.node.arguments.map(arg => this.resolveExpression(arg));
+          // Join arguments with spaces to simulate actual console output
+          const output = args.filter(arg => arg !== null).join(" ");
+          this.outputs.push(output);
         }
 
         // DOM Event
@@ -71,13 +81,60 @@ export class JSParser {
       objects: this.objects,
       events: this.events,
       outputs: this.outputs,
+      commentedCode: this.commentedCode,
       structure: this.generateTests(code)
     };
   }
 
+  parseComments(code) {
+    const lines = code.split('\n');
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Check for single-line comments that contain code
+      if (line.startsWith('//')) {
+        const commentContent = line.substring(2).trim();
+        
+        // Check if comment contains variable declarations
+        if (commentContent.includes('const ') || commentContent.includes('let ') || commentContent.includes('var ')) {
+          this.commentedCode.push({
+            type: 'variable',
+            line: i + 1,
+            content: commentContent,
+            description: `Commented variable declaration: ${commentContent}`
+          });
+        }
+        
+        // Check if comment contains console.log statements
+        if (commentContent.includes('console.log')) {
+          this.commentedCode.push({
+            type: 'output',
+            line: i + 1,
+            content: commentContent,
+            description: `Commented console output: ${commentContent}`
+          });
+        }
+        
+        // Check if comment contains explanatory text about expected output
+        if (commentContent.includes('Final Bill') || commentContent.includes('discount')) {
+          this.commentedCode.push({
+            type: 'explanation',
+            line: i + 1,
+            content: commentContent,
+            description: `Explanatory comment: ${commentContent}`
+          });
+        }
+      }
+    }
+  }
+
   resolveExpression(expr) {
     if (!expr) return null;
-    if (expr.type === "Identifier") return expr.name;
+    if (expr.type === "Identifier") {
+      // Try to resolve variable value, fallback to variable name
+      return this.variableValues.get(expr.name) || expr.name;
+    }
     if (expr.type === "NumericLiteral") return expr.value;
     if (expr.type === "StringLiteral") return expr.value;
     if (expr.type === "MemberExpression")
@@ -136,6 +193,44 @@ export class JSParser {
         event: e.event,
         expected: { consoleOutput: `${e.event} event triggered` }
       });
+    });
+
+    // Add tests for commented code
+    this.commentedCode.forEach(comment => {
+      if (comment.type === 'variable') {
+        // Extract variable name and value from commented code
+        const varMatch = comment.content.match(/(?:const|let|var)\s+(\w+)\s*=\s*([^;]+);?/);
+        if (varMatch) {
+          const varName = varMatch[1];
+          const varValue = varMatch[2].trim();
+          tests.push({
+            type: "commented_variable",
+            description: `Commented variable '${varName}' should be uncommented with value ${varValue}`,
+            variable: varName,
+            expectedValue: varValue,
+            comment: comment.content
+          });
+        }
+      } else if (comment.type === 'output') {
+        // Extract expected output from commented console.log
+        const outputMatch = comment.content.match(/console\.log\((.+)\);?/);
+        if (outputMatch) {
+          const expectedOutput = outputMatch[1].replace(/['"]/g, '').trim();
+          tests.push({
+            type: "commented_output",
+            description: `Commented console output should be uncommented: ${expectedOutput}`,
+            expectedOutput: expectedOutput,
+            comment: comment.content
+          });
+        }
+      } else if (comment.type === 'explanation') {
+        // Add explanation test for educational purposes
+        tests.push({
+          type: "explanation",
+          description: `Comment explains: ${comment.content}`,
+          comment: comment.content
+        });
+      }
     });
 
     if (tests.length === 0) {

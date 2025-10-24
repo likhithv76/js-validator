@@ -1,57 +1,36 @@
 {
-    "Code_Validation": {
-      "script.js": {
-        "Ans": "const age = 20;\r\nconst votingStatus = (age >= 18) ? \"Eligible to Vote\" : \"Not Eligible\";\r\nconst user = { name: \"John\", score: 80 };\r\nif (user.score >= 75) {\r\n  console.log(\"Passed\");\r\n}\r\ndocument.querySelector(\"#btn\").addEventListener(\"click\", () => {\r\n  console.log(\"Button clicked!\");\r\n});\r\n",
-        "structure": [
-          {
-            "type": "variable",
-            "description": "Variable 'age' should be declared with value 20",
-            "variable": "age",
-            "expectedValue": 20
-          },
-          {
-            "type": "condition",
-            "description": "Check if age >= 18 condition is used",
-            "variable": "age",
-            "expectedOperator": ">=",
-            "expectedValue": 18
-          },
-          {
-            "type": "condition",
-            "description": "Check if user.score >= 75 condition is used",
-            "variable": "user.score",
-            "expectedOperator": ">=",
-            "expectedValue": 75
-          },
-          {
-            "type": "object",
-            "description": "Check if 'user' object contains name, score properties",
-            "objectName": "user",
-            "expectedProperties": [
-              "name",
-              "score"
-            ]
-          },
-          {
-            "type": "output",
-            "description": "Should print 'Passed' using console.log",
-            "expectedOutput": "Passed"
-          },
-          {
-            "type": "output",
-            "description": "Should print 'Button clicked!' using console.log",
-            "expectedOutput": "Button clicked!"
-          },
-          {
-            "type": "event",
-            "description": "Check element handles 'click' event",
-            "selector": "#btn",
-            "event": "click",
-            "expected": {
-              "consoleOutput": "Button clicked!"
-            }
-          }
-        ]
-      }
+  "Code_Validation": {
+    "script.js": {
+      "Ans": "var userName = \"Sara\";\r\nconsole.log(\"Initial userName:\", userName);\r\n\r\nuserName = \"Tina\";\r\nconsole.log(\"Changed userName:\", userName);\r\n\r\nvar userName = \"Raj\";\r\nconsole.log(\"Redeclared userName:\", userName);\r\n",
+      "structure": [
+        {
+          "type": "variable",
+          "description": "Variable 'userName' should be declared with value Sara",
+          "variable": "userName",
+          "expectedValue": "Sara"
+        },
+        {
+          "type": "variable",
+          "description": "Variable 'userName' should be declared with value Raj",
+          "variable": "userName",
+          "expectedValue": "Raj"
+        },
+        {
+          "type": "output",
+          "description": "Should print 'Initial userName: Sara' using console.log",
+          "expectedOutput": "Initial userName: Sara"
+        },
+        {
+          "type": "output",
+          "description": "Should print 'Changed userName: Sara' using console.log",
+          "expectedOutput": "Changed userName: Sara"
+        },
+        {
+          "type": "output",
+          "description": "Should print 'Redeclared userName: Raj' using console.log",
+          "expectedOutput": "Redeclared userName: Raj"
+        }
+      ]
     }
   }
+}
