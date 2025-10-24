@@ -1,18 +1,64 @@
 {
   "Code_Validation": {
     "script.js": {
-      "Ans": "const CART_TOTAL = null;\r\n\r\nconsole.log(\"Cart total is:\", CART_TOTAL);",
+      "Ans": "// Simple test for advanced features\r\nfunction add(a, b) {\r\n  return a + b;\r\n}\r\n\r\nconst multiply = (x, y) => {\r\n  return x * y;\r\n};\r\n\r\nconst person = {\r\n  name: \"John\",\r\n  age: 30\r\n};\r\n\r\nconst keys = Object.keys(person);\r\nconsole.log(\"Keys:\", keys);\r\n\r\nconst result = add(5, 3);\r\nconsole.log(\"Result:\", result);",
       "structure": [
         {
           "type": "variable",
-          "description": "Variable 'CART_TOTAL' should have final value null",
-          "variable": "CART_TOTAL",
-          "expectedValue": null
+          "description": "Variable 'person' should have final value {\"name\":\"John\",\"age\":30}",
+          "variable": "person",
+          "expectedValue": {
+            "name": "John",
+            "age": 30
+          }
+        },
+        {
+          "type": "object",
+          "description": "Check if 'person' object contains name, age properties",
+          "objectName": "person",
+          "expectedProperties": [
+            "name",
+            "age"
+          ]
+        },
+        {
+          "type": "object",
+          "description": "Should use Object.keys() method",
+          "objectName": "Object",
+          "method": "keys",
+          "expectedMethod": "keys"
         },
         {
           "type": "output",
-          "description": "Should print 'Cart total is: ' using console.log",
-          "expectedOutput": "Cart total is: "
+          "description": "Should print 'Keys: keys' using console.log",
+          "expectedOutput": "Keys: keys"
+        },
+        {
+          "type": "output",
+          "description": "Should print 'Result: result' using console.log",
+          "expectedOutput": "Result: result"
+        },
+        {
+          "type": "function",
+          "description": "Function 'add' should be declared with 2 parameter(s)",
+          "functionName": "add",
+          "expectedParameters": [
+            "a",
+            "b"
+          ],
+          "hasReturn": true,
+          "functionType": "function_declaration"
+        },
+        {
+          "type": "function",
+          "description": "Function 'multiply' should be declared with 2 parameter(s)",
+          "functionName": "multiply",
+          "expectedParameters": [
+            "x",
+            "y"
+          ],
+          "hasReturn": true,
+          "functionType": "arrow_function"
         }
       ]
     }
