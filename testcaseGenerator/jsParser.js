@@ -9,23 +9,23 @@ export class JSParser {
     this.events = [];
     this.outputs = [];
     this.commentedCode = [];
-    this.variableValues = new Map(); // Store variable values for resolution
-    this.variableAssignments = []; // Track all variable assignments in order
-    this.declaredVariables = new Set(); // Track declared variables for hoisting
+    this.functions = [];
+    this.domManipulations = [];
+    this.loops = [];
+    this.variableValues = new Map();
+    this.variableAssignments = [];
+    this.declaredVariables = new Set(); 
   }
 
   parse(code) {
-    // Parse comments first to detect commented-out code
     this.parseComments(code);
     
     const ast = parser.parse(code, { sourceType: "module", plugins: ["jsx", "typescript"] });
 
-    // Process the AST with code context for hoisting detection
     traverse.default(ast, {
       VariableDeclarator: (path) => {
         const name = path.node.id.name;
         const valueNode = path.node.init;
-        // Track all variable assignments in order
         const currentLine = path.node.loc?.start.line || 0;
         const assignment = {
           type: 'declaration',
@@ -110,7 +110,6 @@ export class JSParser {
                 newValue = rightValue;
             }
             
-            // Track compound assignments
             const assignment = {
               type: 'compound_assignment',
               name: name,
@@ -120,10 +119,8 @@ export class JSParser {
             };
             this.variableAssignments.push(assignment);
             
-            // Update the variable value
             this.variableValues.set(name, newValue);
           } else {
-            // Regular assignment
             const value = this.resolveExpression(path.node.right, currentLine, code);
             
             const assignment = {
@@ -137,18 +134,15 @@ export class JSParser {
             this.variableValues.set(name, value);
           }
         } else if (path.node.left.type === "MemberExpression") {
-          // Handle object property assignments (e.g., config.theme = "light")
           const objectName = path.node.left.object.name;
           const propertyName = path.node.left.property.name;
           const newValue = this.resolveExpression(path.node.right, currentLine, code);
           
-          // Get the current object and update the property
           const currentObject = this.variableValues.get(objectName);
           if (currentObject && typeof currentObject === 'object') {
             const updatedObject = { ...currentObject, [propertyName]: newValue };
             this.variableValues.set(objectName, updatedObject);
             
-            // Track this as a property assignment
             const assignment = {
               type: 'property_assignment',
               name: objectName,
@@ -190,45 +184,36 @@ export class JSParser {
         const currentLine = path.node.loc?.start.line || 0;
         
         if (callee.object?.name === "console" && callee.property?.name === "log") {
-          // Handle console.log with multiple arguments
           const args = path.node.arguments.map(arg => {
             const resolved = this.resolveExpression(arg, currentLine, code);
-            // Format arrays and objects properly for console output
             if (Array.isArray(resolved)) {
               return resolved.join(",");
             }
             if (resolved && typeof resolved === 'object' && !Array.isArray(resolved)) {
-              // JavaScript console.log converts objects to [object Object] by default
               return '[object Object]';
             }
             if (resolved === null) {
-              // In JSDOM environment, null is converted to empty string in console output
               return "";
             }
             if (resolved === undefined) {
-              // In JSDOM environment, undefined is converted to empty string in console output
               return "";
             }
             return resolved;
           });
-          // Join arguments with spaces to simulate actual console output
           const output = args.join(" ");
           this.outputs.push(output);
         }
 
-        // Handle array method calls (like push, pop, etc.)
         if (callee.type === "MemberExpression" && callee.object?.type === "Identifier") {
           const arrayName = callee.object.name;
           const methodName = callee.property?.name;
           const currentArray = this.variableValues.get(arrayName);
           
           if (Array.isArray(currentArray) && methodName === "push") {
-            // Handle array.push() calls
             const newElements = path.node.arguments.map(arg => this.resolveExpression(arg, currentLine, code));
             const updatedArray = [...currentArray, ...newElements];
             this.variableValues.set(arrayName, updatedArray);
             
-            // Track this as an assignment
             const assignment = {
               type: 'array_method',
               name: arrayName,
@@ -246,6 +231,126 @@ export class JSParser {
           const eventName = path.node.arguments[0]?.value;
           this.events.push({ element, event: eventName });
         }
+
+        // DOM Manipulation
+        if (callee.property?.name === "getElementById" || callee.property?.name === "querySelector") {
+          const selector = path.node.arguments[0]?.value;
+          this.domManipulations.push({
+            type: 'element_selection',
+            method: callee.property.name,
+            selector: selector,
+            line: currentLine
+          });
+        }
+
+        if (callee.property?.name === "innerHTML" && callee.object?.type === "MemberExpression") {
+          const element = callee.object.object?.name || "element";
+          this.domManipulations.push({
+            type: 'innerHTML_access',
+            element: element,
+            line: currentLine
+          });
+        }
+
+        // Object methods (Object.keys, Object.values, etc.)
+        if (callee.object?.name === "Object" && callee.property?.name) {
+          this.objects.push({
+            name: 'Object',
+            method: callee.property.name,
+            line: currentLine,
+            type: 'object_method'
+          });
+        }
+      },
+
+      // Function Declaration
+      FunctionDeclaration: (path) => {
+        const name = path.node.id?.name;
+        const params = path.node.params.map(param => param.name);
+        const currentLine = path.node.loc?.start.line || 0;
+        
+        this.functions.push({
+          name: name,
+          type: 'function_declaration',
+          parameters: params,
+          line: currentLine,
+          hasReturn: this.hasReturnStatement(path.node.body)
+        });
+      },
+
+      // Arrow Function Expression
+      ArrowFunctionExpression: (path) => {
+        const currentLine = path.node.loc?.start.line || 0;
+        const params = path.node.params.map(param => param.name);
+        
+        // Try to get the variable name if this arrow function is assigned to a variable
+        let functionName = 'arrow_function';
+        if (path.parent && path.parent.type === 'VariableDeclarator') {
+          functionName = path.parent.id.name;
+        }
+        
+        this.functions.push({
+          name: functionName,
+          type: 'arrow_function',
+          parameters: params,
+          line: currentLine,
+          hasReturn: this.hasReturnStatement(path.node.body)
+        });
+      },
+
+      // For Loop
+      ForStatement: (path) => {
+        const currentLine = path.node.loc?.start.line || 0;
+        this.loops.push({
+          type: 'for_loop',
+          line: currentLine,
+          hasBreak: this.hasBreakStatement(path.node.body),
+          hasContinue: this.hasContinueStatement(path.node.body)
+        });
+      },
+
+      // While Loop
+      WhileStatement: (path) => {
+        const currentLine = path.node.loc?.start.line || 0;
+        this.loops.push({
+          type: 'while_loop',
+          line: currentLine,
+          hasBreak: this.hasBreakStatement(path.node.body),
+          hasContinue: this.hasContinueStatement(path.node.body)
+        });
+      },
+
+      // For...of Loop
+      ForOfStatement: (path) => {
+        const currentLine = path.node.loc?.start.line || 0;
+        this.loops.push({
+          type: 'for_of_loop',
+          line: currentLine,
+          hasBreak: this.hasBreakStatement(path.node.body),
+          hasContinue: this.hasContinueStatement(path.node.body)
+        });
+      },
+
+      // For...in Loop
+      ForInStatement: (path) => {
+        const currentLine = path.node.loc?.start.line || 0;
+        this.loops.push({
+          type: 'for_in_loop',
+          line: currentLine,
+          hasBreak: this.hasBreakStatement(path.node.body),
+          hasContinue: this.hasContinueStatement(path.node.body)
+        });
+      },
+
+      // Do...While Loop
+      DoWhileStatement: (path) => {
+        const currentLine = path.node.loc?.start.line || 0;
+        this.loops.push({
+          type: 'do_while_loop',
+          line: currentLine,
+          hasBreak: this.hasBreakStatement(path.node.body),
+          hasContinue: this.hasContinueStatement(path.node.body)
+        });
       }
     });
 
@@ -256,6 +361,9 @@ export class JSParser {
       events: this.events,
       outputs: this.outputs,
       commentedCode: this.commentedCode,
+      functions: this.functions,
+      domManipulations: this.domManipulations,
+      loops: this.loops,
       variableAssignments: this.variableAssignments,
       structure: this.generateTests(code)
     };
@@ -447,6 +555,45 @@ export class JSParser {
     return test.operator || (test.type === "BinaryExpression" ? test.operator : null);
   }
 
+  // Helper method to check if a function body has a return statement
+  hasReturnStatement(body) {
+    if (!body) return false;
+    
+    if (body.type === "BlockStatement") {
+      return body.body.some(stmt => stmt.type === "ReturnStatement");
+    } else if (body.type === "ReturnStatement") {
+      return true;
+    }
+    
+    return false;
+  }
+
+  // Helper method to check if a loop body has a break statement
+  hasBreakStatement(body) {
+    if (!body) return false;
+    
+    if (body.type === "BlockStatement") {
+      return body.body.some(stmt => stmt.type === "BreakStatement");
+    } else if (body.type === "BreakStatement") {
+      return true;
+    }
+    
+    return false;
+  }
+
+  // Helper method to check if a loop body has a continue statement
+  hasContinueStatement(body) {
+    if (!body) return false;
+    
+    if (body.type === "BlockStatement") {
+      return body.body.some(stmt => stmt.type === "ContinueStatement");
+    } else if (body.type === "ContinueStatement") {
+      return true;
+    }
+    
+    return false;
+  }
+
   generateTests(code) {
     const tests = [];
 
@@ -472,12 +619,22 @@ export class JSParser {
     });
 
     this.objects.forEach(o => {
-      tests.push({
-        type: "object",
-        description: `Check if '${o.name}' object contains ${o.props.join(", ")} properties`,
-        objectName: o.name,
-        expectedProperties: o.props
-      });
+      if (o.type === 'object_method') {
+        tests.push({
+          type: "object",
+          description: `Should use Object.${o.method}() method`,
+          objectName: o.name,
+          method: o.method,
+          expectedMethod: o.method
+        });
+      } else {
+        tests.push({
+          type: "object",
+          description: `Check if '${o.name}' object contains ${o.props.join(", ")} properties`,
+          objectName: o.name,
+          expectedProperties: o.props
+        });
+      }
     });
 
     this.outputs.forEach(o => {
@@ -495,6 +652,51 @@ export class JSParser {
         selector: `#${e.element}`,
         event: e.event,
         expected: { consoleOutput: `${e.event} event triggered` }
+      });
+    });
+
+    // Generate function tests
+    this.functions.forEach(f => {
+      tests.push({
+        type: "function",
+        description: `Function '${f.name}' should be declared with ${f.parameters.length} parameter(s)`,
+        functionName: f.name,
+        expectedParameters: f.parameters,
+        hasReturn: f.hasReturn,
+        functionType: f.type
+      });
+    });
+
+    // Generate DOM manipulation tests
+    this.domManipulations.forEach(d => {
+      if (d.type === 'element_selection') {
+        tests.push({
+          type: "dom_structure",
+          description: `Should use ${d.method} to select element`,
+          method: d.method,
+          selector: d.selector,
+          expected: { method: d.method, selector: d.selector }
+        });
+      } else if (d.type === 'innerHTML_access') {
+        tests.push({
+          type: "dom_structure",
+          description: `Should access innerHTML property of ${d.element}`,
+          element: d.element,
+          property: 'innerHTML',
+          expected: { element: d.element, property: 'innerHTML' }
+        });
+      }
+    });
+
+    // Generate loop tests
+    this.loops.forEach(l => {
+      tests.push({
+        type: "loop",
+        description: `Should use ${l.type.replace('_', ' ')} loop`,
+        loopType: l.type,
+        hasBreak: l.hasBreak,
+        hasContinue: l.hasContinue,
+        expectedLoops: 1
       });
     });
 

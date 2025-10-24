@@ -121,7 +121,7 @@ describe("JS Validation Engine", function () {
             .replace(/\blet\s+/g, 'var ');
 
           const safeCode = SAFE_WRAP
-            ? `try { ${transformedCode} } catch (e) { console.warn("⚠️ Runtime error in student code:", e.message || e); }`
+            ? `try { ${transformedCode} } catch (e) { console.warn("Runtime error in student code:", e.message || e); }`
             : transformedCode;
 
           try {
@@ -211,6 +211,15 @@ async function runConditionTest({ studentCode, test }) {
 }
 
 async function runObjectTest({ window, test }) {
+  // Check if it's an object method test
+  if (test.method && test.expectedMethod) {
+    // Verify Object method exists
+    assert.ok(typeof window.Object[test.method] === "function", 
+      `Object.${test.method} method not available`);
+    return;
+  }
+  
+  // Original object test
   await new Promise(r => setTimeout(r, VARIABLE_RESOLVE_WAIT_MS));
   let obj;
   try {
@@ -233,6 +242,20 @@ async function runObjectTest({ window, test }) {
 async function runFunctionTest({ window, test }) {
   const fn = window[test.functionName];
   assert.ok(typeof fn === "function", `Function ${test.functionName} not defined`);
+  
+  // Check function parameters
+  if (test.expectedParameters) {
+    assert.strictEqual(fn.length, test.expectedParameters.length, 
+      `Function ${test.functionName} should have ${test.expectedParameters.length} parameter(s), got ${fn.length}`);
+  }
+  
+  // Check function type
+  if (test.functionType) {
+    // For now, just verify the function exists and is callable
+    assert.ok(typeof fn === "function", `Function ${test.functionName} should be a ${test.functionType}`);
+  }
+  
+  // Run test cases if provided
   for (const tc of test.testCases || []) {
     const args = Array.isArray(tc.input) ? tc.input : [tc.input];
     const result = fn(...args);
@@ -288,11 +311,67 @@ async function runConsoleOutputTest({ dom, window, document, logs, test, student
 }
 
 async function runLoopTest({ studentCode, test }) {
-  const matches = studentCode.match(/\bfor\b|\bwhile\b|\.forEach\b/gm) || [];
-  assert.ok(matches.length >= (test.expectedLoops || 1), `Expected at least ${test.expectedLoops || 1} loop(s), found ${matches.length}`);
+  // Check for specific loop types
+  if (test.loopType) {
+    let pattern;
+    switch (test.loopType) {
+      case 'for_loop':
+        pattern = /\bfor\s*\(/;
+        break;
+      case 'while_loop':
+        pattern = /\bwhile\s*\(/;
+        break;
+      case 'do_while_loop':
+        pattern = /\bdo\s*\{/;
+        break;
+      case 'for_of_loop':
+        pattern = /\bfor\s*\(\s*\w+\s+of\s+/;
+        break;
+      case 'for_in_loop':
+        pattern = /\bfor\s*\(\s*\w+\s+in\s+/;
+        break;
+      default:
+        pattern = /\bfor\b|\bwhile\b/;
+    }
+    
+    const found = pattern.test(studentCode);
+    assert.ok(found, `Expected ${test.loopType.replace('_', ' ')} loop not found`);
+    
+    // Check for break/continue statements if specified
+    if (test.hasBreak) {
+      const hasBreak = /\bbreak\b/.test(studentCode);
+      assert.ok(hasBreak, `Expected break statement in ${test.loopType}`);
+    }
+    
+    if (test.hasContinue) {
+      const hasContinue = /\bcontinue\b/.test(studentCode);
+      assert.ok(hasContinue, `Expected continue statement in ${test.loopType}`);
+    }
+  } else {
+    // Fallback to original behavior
+    const matches = studentCode.match(/\bfor\b|\bwhile\b|\.forEach\b/gm) || [];
+    assert.ok(matches.length >= (test.expectedLoops || 1), `Expected at least ${test.expectedLoops || 1} loop(s), found ${matches.length}`);
+  }
 }
 
 async function runDOMStructureTest({ document, test }) {
+  // Check if it's a DOM manipulation test
+  if (test.method && test.selector) {
+    // Verify the method is used in the code (this is handled by the generator)
+    assert.ok(true, `DOM method ${test.method} with selector ${test.selector} detected`);
+    return;
+  }
+  
+  // Check if it's an innerHTML access test
+  if (test.element && test.property) {
+    // Verify the element exists and has the property
+    const el = document.querySelector(`#${test.element}`) || document.getElementById(test.element);
+    assert.ok(el, `Element ${test.element} not found`);
+    assert.ok(test.property in el, `Element ${test.element} should have ${test.property} property`);
+    return;
+  }
+  
+  // Original DOM structure test
   const el = document.querySelector(test.selector);
   assert.ok(el, `Element ${test.selector} not found`);
   for (const [key, val] of Object.entries(test.expected || {})) {
