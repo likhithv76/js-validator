@@ -1,34 +1,18 @@
 {
   "Code_Validation": {
     "script.js": {
-      "Ans": "var userName = \"Sara\";\r\nconsole.log(\"Initial userName:\", userName);\r\n\r\nuserName = \"Tina\";\r\nconsole.log(\"Changed userName:\", userName);\r\n\r\nvar userName = \"Raj\";\r\nconsole.log(\"Redeclared userName:\", userName);\r\n",
+      "Ans": "const CART_TOTAL = null;\r\n\r\nconsole.log(\"Cart total is:\", CART_TOTAL);",
       "structure": [
         {
           "type": "variable",
-          "description": "Variable 'userName' should be declared with value Sara",
-          "variable": "userName",
-          "expectedValue": "Sara"
-        },
-        {
-          "type": "variable",
-          "description": "Variable 'userName' should be declared with value Raj",
-          "variable": "userName",
-          "expectedValue": "Raj"
+          "description": "Variable 'CART_TOTAL' should have final value null",
+          "variable": "CART_TOTAL",
+          "expectedValue": null
         },
         {
           "type": "output",
-          "description": "Should print 'Initial userName: Sara' using console.log",
-          "expectedOutput": "Initial userName: Sara"
-        },
-        {
-          "type": "output",
-          "description": "Should print 'Changed userName: Sara' using console.log",
-          "expectedOutput": "Changed userName: Sara"
-        },
-        {
-          "type": "output",
-          "description": "Should print 'Redeclared userName: Raj' using console.log",
-          "expectedOutput": "Redeclared userName: Raj"
+          "description": "Should print 'Cart total is: ' using console.log",
+          "expectedOutput": "Cart total is: "
         }
       ]
     }

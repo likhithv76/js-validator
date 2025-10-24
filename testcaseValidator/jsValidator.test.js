@@ -105,6 +105,11 @@ describe("JS Validation Engine", function () {
           console.log = (...a) => logs.push(a.join(" "));
           console.error = (...a) => logs.push(a.join(" "));
           console.warn = (...a) => logs.push(a.join(" "));
+          
+          // Redirect JSDOM console to Node.js console for capture
+          window.console.log = (...a) => logs.push(a.join(" "));
+          window.console.error = (...a) => logs.push(a.join(" "));
+          window.console.warn = (...a) => logs.push(a.join(" "));
 
           window.addEventListener("error", (ev) => {
             logs.push(`__RUNTIME_ERROR__:${ev.message}`);
@@ -127,7 +132,7 @@ describe("JS Validation Engine", function () {
 
           await new Promise((r) => setTimeout(r, STUDENT_EXEC_WAIT_MS));
 
-          const context = { dom, window, document, logs, studentCode, test };
+          const context = { dom, window, document, logs, studentCode, test, originalConsole };
 
           try {
             const handler = HANDLERS[test.type];
@@ -160,7 +165,42 @@ async function runVariableTest({ window, test }) {
   }
   assert.ok(val !== undefined, `Variable ${test.variable} not defined`);
   if (test.expectedValue !== undefined) {
-    assert.strictEqual(val, test.expectedValue, `Expected ${test.variable}=${test.expectedValue}, got ${val}`);
+    // Handle array and object comparisons properly
+    if (Array.isArray(test.expectedValue) && Array.isArray(val)) {
+      // Manual array comparison (more reliable than deepStrictEqual for this use case)
+      let arraysEqual = true;
+      if (test.expectedValue.length !== val.length) {
+        arraysEqual = false;
+      } else {
+        for (let i = 0; i < test.expectedValue.length; i++) {
+          if (test.expectedValue[i] !== val[i]) {
+            arraysEqual = false;
+            break;
+          }
+        }
+      }
+      
+      if (!arraysEqual) {
+        assert.fail(`Arrays not equal: expected ${JSON.stringify(test.expectedValue)}, got ${JSON.stringify(val)}`);
+      }
+    } else if (test.expectedValue && typeof test.expectedValue === 'object' && !Array.isArray(test.expectedValue) && 
+               val && typeof val === 'object' && !Array.isArray(val)) {
+      // Manual object comparison
+      const expectedKeys = Object.keys(test.expectedValue);
+      const actualKeys = Object.keys(val);
+      
+      if (expectedKeys.length !== actualKeys.length) {
+        assert.fail(`Objects not equal: expected ${JSON.stringify(test.expectedValue)}, got ${JSON.stringify(val)}`);
+      }
+      
+      for (const key of expectedKeys) {
+        if (test.expectedValue[key] !== val[key]) {
+          assert.fail(`Objects not equal: expected ${JSON.stringify(test.expectedValue)}, got ${JSON.stringify(val)}`);
+        }
+      }
+    } else {
+      assert.strictEqual(val, test.expectedValue, `Expected ${test.variable}=${test.expectedValue}, got ${val}`);
+    }
   }
 }
 
@@ -228,7 +268,7 @@ async function runEventTest({ dom, window, document, logs, test }) {
   }
 }
 
-async function runConsoleOutputTest({ dom, window, document, logs, test, studentCode }) {
+async function runConsoleOutputTest({ dom, window, document, logs, test, studentCode, originalConsole }) {
   const preLen = logs.length;
 
   if (test.expectedOutput && test.expectedOutput.toLowerCase().includes("click")) {

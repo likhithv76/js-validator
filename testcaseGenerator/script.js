@@ -1,8 +1,3 @@
-var userName = "Sara";
-console.log("Initial userName:", userName);
+const CART_TOTAL = null;
 
-userName = "Tina";
-console.log("Changed userName:", userName);
-
-var userName = "Raj";
-console.log("Redeclared userName:", userName);
+console.log("Cart total is:", CART_TOTAL);
