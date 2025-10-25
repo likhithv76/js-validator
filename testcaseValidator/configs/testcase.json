@@ -1,64 +1,31 @@
 {
   "Code_Validation": {
     "script.js": {
-      "Ans": "// Simple test for advanced features\r\nfunction add(a, b) {\r\n  return a + b;\r\n}\r\n\r\nconst multiply = (x, y) => {\r\n  return x * y;\r\n};\r\n\r\nconst person = {\r\n  name: \"John\",\r\n  age: 30\r\n};\r\n\r\nconst keys = Object.keys(person);\r\nconsole.log(\"Keys:\", keys);\r\n\r\nconst result = add(5, 3);\r\nconsole.log(\"Result:\", result);",
+      "Ans": "const orderAmount = 850;\r\n\r\nconst deliveryStatus = (orderAmount >= 1000) ? \"Free Delivery\" : \"Delivery Charge: 50\";\r\nconsole.log(deliveryStatus);\r\n",
       "structure": [
         {
           "type": "variable",
-          "description": "Variable 'person' should have final value {\"name\":\"John\",\"age\":30}",
-          "variable": "person",
-          "expectedValue": {
-            "name": "John",
-            "age": 30
-          }
+          "description": "Variable 'orderAmount' should have final value 850",
+          "variable": "orderAmount",
+          "expectedValue": 850
         },
         {
-          "type": "object",
-          "description": "Check if 'person' object contains name, age properties",
-          "objectName": "person",
-          "expectedProperties": [
-            "name",
-            "age"
-          ]
+          "type": "variable",
+          "description": "Variable 'deliveryStatus' should have final value \"Delivery Charge: 50\"",
+          "variable": "deliveryStatus",
+          "expectedValue": "Delivery Charge: 50"
         },
         {
-          "type": "object",
-          "description": "Should use Object.keys() method",
-          "objectName": "Object",
-          "method": "keys",
-          "expectedMethod": "keys"
+          "type": "condition",
+          "description": "Check if orderAmount >= 1000 condition is used",
+          "variable": "orderAmount",
+          "expectedOperator": ">=",
+          "expectedValue": 1000
         },
         {
           "type": "output",
-          "description": "Should print 'Keys: keys' using console.log",
-          "expectedOutput": "Keys: keys"
-        },
-        {
-          "type": "output",
-          "description": "Should print 'Result: result' using console.log",
-          "expectedOutput": "Result: result"
-        },
-        {
-          "type": "function",
-          "description": "Function 'add' should be declared with 2 parameter(s)",
-          "functionName": "add",
-          "expectedParameters": [
-            "a",
-            "b"
-          ],
-          "hasReturn": true,
-          "functionType": "function_declaration"
-        },
-        {
-          "type": "function",
-          "description": "Function 'multiply' should be declared with 2 parameter(s)",
-          "functionName": "multiply",
-          "expectedParameters": [
-            "x",
-            "y"
-          ],
-          "hasReturn": true,
-          "functionType": "arrow_function"
+          "description": "Should print 'Delivery Charge: 50' using console.log",
+          "expectedOutput": "Delivery Charge: 50"
         }
       ]
     }

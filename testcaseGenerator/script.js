@@ -1,19 +1,4 @@
-// Simple test for advanced features
-function add(a, b) {
-  return a + b;
-}
+const orderAmount = 850;
 
-const multiply = (x, y) => {
-  return x * y;
-};
-
-const person = {
-  name: "John",
-  age: 30
-};
-
-const keys = Object.keys(person);
-console.log("Keys:", keys);
-
-const result = add(5, 3);
-console.log("Result:", result);
+const deliveryStatus = (orderAmount >= 1000) ? "Free Delivery" : "Delivery Charge: 50";
+console.log(deliveryStatus);
