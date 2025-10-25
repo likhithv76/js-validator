@@ -14,9 +14,9 @@ const CONFIGS_DIR = path.join(__dirname, "configs");
 const DEFAULT_JS_NAME = "script.js";
 
 // Tunables
-const STUDENT_EXEC_WAIT_MS = 60;        // wait after injecting script to let it run
-const VARIABLE_RESOLVE_WAIT_MS = 60;    // wait before trying to read variables/objects
-const SAFE_WRAP = true;                 // wrap student code in try/catch
+const STUDENT_EXEC_WAIT_MS = 60;       
+const VARIABLE_RESOLVE_WAIT_MS = 60;    
+const SAFE_WRAP = true;            
 
 if (!fs.existsSync(CONFIGS_DIR)) {
   console.error("Config directory not found:", CONFIGS_DIR);
@@ -205,7 +205,16 @@ async function runVariableTest({ window, test }) {
 }
 
 async function runConditionTest({ studentCode, test }) {
-  const pattern = new RegExp(`${escapeRegex(test.variable)}\\s*${escapeRegex(test.expectedOperator)}\\s*${escapeRegex(String(test.expectedValue))}`);
+  // Create a more flexible pattern that can match variable names or values
+  const variablePattern = typeof test.variable === 'string' && isNaN(test.variable) 
+    ? `\\b${escapeRegex(test.variable)}\\b` 
+    : escapeRegex(String(test.variable));
+  
+  const valuePattern = typeof test.expectedValue === 'string' && isNaN(test.expectedValue)
+    ? `\\b${escapeRegex(String(test.expectedValue))}\\b`
+    : escapeRegex(String(test.expectedValue));
+  
+  const pattern = new RegExp(`${variablePattern}\\s*${escapeRegex(test.expectedOperator)}\\s*${valuePattern}`);
   const found = pattern.test(studentCode);
   assert.ok(found, `Condition ${test.variable} ${test.expectedOperator} ${test.expectedValue} not found`);
 }

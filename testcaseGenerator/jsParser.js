@@ -156,13 +156,17 @@ export class JSParser {
       },
 
       ConditionalExpression: (path) => {
-        const { left, operator, right } = path.node.test;
+        const test = path.node.test;
         const currentLine = path.node.loc?.start.line || 0;
-        if (left && right) {
+        if (test.left && test.right) {
+          // Store original variable names instead of resolved values
+          const leftVar = test.left.type === "Identifier" ? test.left.name : this.resolveExpression(test.left, currentLine, code);
+          const rightVar = test.right.type === "Identifier" ? test.right.name : this.resolveExpression(test.right, currentLine, code);
+          
           this.conditions.push({
-            variable: this.resolveExpression(left, currentLine, code),
-            operator,
-            value: this.resolveExpression(right, currentLine, code)
+            variable: leftVar,
+            operator: test.operator || this.extractOperator(test),
+            value: rightVar
           });
         }
       },
@@ -260,6 +264,26 @@ export class JSParser {
             line: currentLine,
             type: 'object_method'
           });
+          
+          if (path.node.arguments.length > 0) {
+            const arg = path.node.arguments[0];
+            const resolvedArg = this.resolveExpression(arg, currentLine, code);
+            
+            if (resolvedArg && typeof resolvedArg === 'object' && !Array.isArray(resolvedArg)) {
+              let result;
+              if (callee.property.name === 'keys') {
+                result = Object.keys(resolvedArg);
+              } else if (callee.property.name === 'values') {
+                result = Object.values(resolvedArg);
+              }
+              
+              if (result !== undefined) {
+                // Store the result in variableValues for later resolution
+                const resultVarName = `Object.${callee.property.name}(${arg.name || 'obj'})`;
+                this.variableValues.set(resultVarName, result);
+              }
+            }
+          }
         }
       },
 
@@ -456,15 +480,47 @@ export class JSParser {
       });
       return obj;
     }
-    if (expr.type === "UnaryExpression" && expr.operator === "typeof") {
-      // Handle typeof expressions
+    if (expr.type === "UnaryExpression") {
       const argument = this.resolveExpression(expr.argument, currentLine, code);
-      if (typeof argument === "number") return "number";
-      if (typeof argument === "string") return "string";
-      if (typeof argument === "boolean") return "boolean";
-      if (argument === null) return "object";
-      if (argument === undefined) return "undefined";
-      return "object"; // default for objects, functions, etc.
+      
+      if (expr.operator === "typeof") {
+        // Handle typeof expressions
+        if (typeof argument === "number") return "number";
+        if (typeof argument === "string") return "string";
+        if (typeof argument === "boolean") return "boolean";
+        if (argument === null) return "object";
+        if (argument === undefined) return "undefined";
+        return "object"; // default for objects, functions, etc.
+      } else if (expr.operator === "!") {
+        return !argument;
+      } else if (expr.operator === "-") {
+        return -argument;
+      } else if (expr.operator === "+") {
+        return +argument;
+      }
+    }
+    if (expr.type === "LogicalExpression") {
+      // Handle logical expressions (&&, ||)
+      const left = this.resolveExpression(expr.left, currentLine, code);
+      const right = this.resolveExpression(expr.right, currentLine, code);
+      
+      if (expr.operator === "&&") {
+        return left && right;
+      } else if (expr.operator === "||") {
+        return left || right;
+      }
+    }
+    if (expr.type === "ParenthesizedExpression") {
+      // Handle expressions in parentheses
+      return this.resolveExpression(expr.expression, currentLine, code);
+    }
+    if (expr.type === "ConditionalExpression") {
+      // Handle ternary operator (condition ? trueValue : falseValue)
+      const test = this.resolveExpression(expr.test, currentLine, code);
+      const consequent = this.resolveExpression(expr.consequent, currentLine, code);
+      const alternate = this.resolveExpression(expr.alternate, currentLine, code);
+      
+      return test ? consequent : alternate;
     }
     if (expr.type === "BinaryExpression") {
       // Handle binary expressions (like string concatenation)
@@ -502,6 +558,12 @@ export class JSParser {
           return left === right;
         case "!==":
           return left !== right;
+        case "&&":
+          return left && right;
+        case "||":
+          return left || right;
+        case "!":
+          return !right;
         default:
           return null;
       }
@@ -523,6 +585,44 @@ export class JSParser {
       
       // Fallback to string representation
       return `${object}.${property}`;
+    }
+    if (expr.type === "CallExpression") {
+      // Handle function calls
+      const callee = expr.callee;
+      const args = expr.arguments.map(arg => this.resolveExpression(arg, currentLine, code));
+      
+      // Handle Object method calls
+      if (callee.object?.name === "Object" && callee.property?.name) {
+        const obj = args[0];
+        if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+          if (callee.property.name === 'keys') {
+            return Object.keys(obj);
+          } else if (callee.property.name === 'values') {
+            return Object.values(obj);
+          }
+        }
+      }
+      
+      // Handle regular function calls
+      if (callee.type === "Identifier") {
+        const funcName = callee.name;
+        
+        // For simple arithmetic functions, try to calculate the result
+        if (funcName === "add" && args.length === 2) {
+          const [a, b] = args;
+          if (typeof a === "number" && typeof b === "number") {
+            return a + b;
+          }
+        } else if (funcName === "multiply" && args.length === 2) {
+          const [a, b] = args;
+          if (typeof a === "number" && typeof b === "number") {
+            return a * b;
+          }
+        }
+        
+        // For other functions, return the function name for now
+        return funcName;
+      }
     }
     return null;
   }
